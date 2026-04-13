@@ -84,20 +84,25 @@ const Portfolio = () => {
   const shakeX = shake > 0 ? Math.min(shake / 50, 30) : 0;
   const shakeY = shake > 0 ? Math.min(shake / 80, 20) : 0;
 
-  const isMobile = window.innerWidth < 768;
-  const positions = isMobile ? {
-    avatar: { x: window.innerWidth / 2 - 80, y: 40 },
-    music: { x: window.innerWidth / 2 - 144, y: 240 },
-    gaming: { x: window.innerWidth / 2 - 144, y: 420 },
-    social: { x: 16, y: window.innerHeight - 200 },
-    theme: { x: window.innerWidth / 2 - 40, y: 560 }
-  } : {
-    avatar: { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 - 200 },
-    music: { x: window.innerWidth * 0.1, y: window.innerHeight * 0.6 },
-    gaming: { x: window.innerWidth * 0.6, y: window.innerHeight * 0.2 },
-    social: { x: window.innerWidth - 260, y: window.innerHeight * 0.3 },
-    theme: { x: window.innerWidth * 0.8, y: window.innerHeight * 0.7 }
-  };
+  const positionsRef = useRef(() => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const isMobile = w < 768;
+    return isMobile ? {
+      avatar: { x: w / 2 - 80, y: 40 },
+      music: { x: w / 2 - 144, y: 240 },
+      gaming: { x: w / 2 - 144, y: 420 },
+      social: { x: 16, y: h - 200 },
+      theme: { x: w / 2 - 40, y: 560 }
+    } : {
+      avatar: { x: w / 2 - 150, y: h / 2 - 200 },
+      music: { x: w * 0.1, y: h * 0.6 },
+      gaming: { x: w * 0.6, y: h * 0.2 },
+      social: { x: w - 260, y: h * 0.3 },
+      theme: { x: w * 0.8, y: h * 0.7 }
+    };
+  });
+  const positions = positionsRef.current();
 
   const handleEnter = () => {
     soundEngine.init();

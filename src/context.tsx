@@ -13,54 +13,12 @@ export interface Song {
 }
 
 export const PLAYLIST: Song[] = [
-  {
-    id: 1,
-    title: "Клей",
-    artist: "CUPSIZE",
-    url: "/CUPSIZE - Клей.mp3",
-    lyrics: "",
-    lyricsPath: "/CUPSIZE - Клей.lrc",
-  },
-  {
-    id: 2,
-    title: "crush",
-    artist: "2hollis",
-    url: "/2hollis - crush.mp3",
-    lyrics: "",
-    lyricsPath: "/2hollis - crush.lrc",
-  },
-  {
-    id: 3,
-    title: "The Love I Lost",
-    artist: "Fried By Fluoride",
-    url: "/Fried By Fluoride - The Love I Lost.mp3",
-    lyrics: "",
-    lyricsPath: "/Fried By Fluoride - The Love I Lost.lrc",
-  },
-  {
-    id: 4,
-    title: "Sleep In",
-    artist: "Fried By Fluoride",
-    url: "/Fried By Fluoride - Sleep In.mp3",
-    lyrics: "",
-    lyricsPath: "/Fried By Fluoride - Sleep In.lrc",
-  },
-  {
-    id: 5,
-    title: "de_survivor",
-    artist: "ONDA ANDAR",
-    url: "/ONDA_ANDAR_-_de_survivor_prod._onda_andar_(SkySound.cc).mp3",
-    lyrics: "",
-    lyricsPath: "/ONDA ANDAR - de_survivor.lrc",
-  },
-  {
-    id: 6,
-    title: "demonic eyes",
-    artist: "akkiemi",
-    url: "/akkiemi_-_demonic_eyes_(SkySound.cc).mp3",
-    lyrics: "",
-    lyricsPath: "/akkiemi - demonic eyes.lrc",
-  },
+  { id: 1, title: "Клей", artist: "CUPSIZE", url: "/CUPSIZE - Клей.mp3", lyrics: "", lyricsPath: "/CUPSIZE - Клей.lrc" },
+  { id: 2, title: "crush", artist: "2hollis", url: "/2hollis - crush.mp3", lyrics: "", lyricsPath: "/2hollis - crush.lrc" },
+  { id: 3, title: "The Love I Lost", artist: "Fried By Fluoride", url: "/Fried By Fluoride - The Love I Lost.mp3", lyrics: "", lyricsPath: "/Fried By Fluoride - The Love I Lost.lrc" },
+  { id: 4, title: "Sleep In", artist: "Fried By Fluoride", url: "/Fried By Fluoride - Sleep In.mp3", lyrics: "", lyricsPath: "/Fried By Fluoride - Sleep In.lrc" },
+  { id: 5, title: "de_survivor", artist: "ONDA ANDAR", url: "/ONDA_ANDAR_-_de_survivor_prod._onda_andar_(SkySound.cc).mp3", lyrics: "", lyricsPath: "/ONDA ANDAR - de_survivor.lrc" },
+  { id: 6, title: "demonic eyes", artist: "akkiemi", url: "/akkiemi_-_demonic_eyes_(SkySound.cc).mp3", lyrics: "", lyricsPath: "/akkiemi - demonic eyes.lrc" },
 ];
 
 export const parseLRC = (lrc: string) => {
@@ -121,7 +79,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const delayOutGainRef = useRef<GainNode | null>(null);
   const requestRef = useRef<number>(0);
   const isCorsBlockedRef = useRef(false);
-  const isInitializedRef = useRef(false);
   const currentSongRef = useRef<Song>(PLAYLIST[0]);
   const isPlayingRef = useRef(false);
   const audioDataRef = useRef<Uint8Array>(new Uint8Array(128));
@@ -137,23 +94,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     document.body.className = theme === 'olive' ? 'theme-olive' : 'theme-amoled';
   }, [theme]);
 
-  useEffect(() => {
-    currentSongRef.current = currentSong;
-  }, [currentSong]);
+  useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
-
-  useEffect(() => {
-    if (feedbackNodeRef.current && delayOutGainRef.current && audioRef.current) {
+    if (feedbackNodeRef.current && delayOutGainRef.current && audioRef.current && audioCtxRef.current) {
       if (isOverdrive) {
-        feedbackNodeRef.current.gain.setTargetAtTime(0.6, audioCtxRef.current!.currentTime, 0.1);
-        delayOutGainRef.current.gain.setTargetAtTime(1, audioCtxRef.current!.currentTime, 0.1);
+        feedbackNodeRef.current.gain.setTargetAtTime(0.6, audioCtxRef.current.currentTime, 0.1);
+        delayOutGainRef.current.gain.setTargetAtTime(1, audioCtxRef.current.currentTime, 0.1);
         audioRef.current.playbackRate = 1.2;
       } else {
-        feedbackNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current!.currentTime, 0.5);
-        delayOutGainRef.current.gain.setTargetAtTime(0, audioCtxRef.current!.currentTime, 0.1);
+        feedbackNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+        delayOutGainRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.1);
         audioRef.current.playbackRate = 1.0;
       }
     }
@@ -167,8 +119,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const text = await res.text();
         return { ...song, lyrics: text };
       }
-    } catch (e) {
-      console.warn("Failed to load lyrics for", song.title);
+    } catch {
+      // lyrics unavailable
     }
     return song;
   };
@@ -179,9 +131,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleTheme = () => setTheme((prev) => (prev === 'amoled' ? 'olive' : 'amoled'));
 
-  const initAudio = () => {
+  const ensureAudio = (songUrl: string) => {
     if (!audioRef.current) {
-      const audio = new Audio(currentSong.url);
+      const audio = new Audio(songUrl);
       audioRef.current = audio;
 
       audio.addEventListener('loadedmetadata', () => setDuration(audio.duration));
@@ -190,10 +142,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const currentIndex = PLAYLIST.findIndex(s => s.id === currentSongRef.current.id);
         const nextIndex = (currentIndex + 1) % PLAYLIST.length;
         const nextSong = PLAYLIST[nextIndex];
-        setCurrentSong(nextSong);
-        setCurrentTime(0);
         loadLyrics(nextSong).then((s) => {
           setCurrentSong(s);
+          setCurrentTime(0);
           if (audioRef.current) {
             audioRef.current.src = s.url;
             audioRef.current.play();
@@ -205,6 +156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!audioCtxRef.current) {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioCtxRef.current = ctx;
+
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyserRef.current = analyser;
@@ -219,19 +171,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       delayOutGainRef.current = delayOutGain;
 
       try {
-        const source = ctx.createMediaElementSource(audioRef.current);
+        const source = ctx.createMediaElementSource(audioRef.current!);
         source.connect(analyser);
         analyser.connect(ctx.destination);
-
         analyser.connect(delay);
         delay.connect(feedback);
         feedback.connect(delay);
         delay.connect(delayOutGain);
         delayOutGain.connect(ctx.destination);
-
         sourceRef.current = source;
-      } catch (e) {
-        console.warn("MediaElementSource creation failed. Simulating data.");
+      } catch {
         isCorsBlockedRef.current = true;
       }
     }
@@ -241,7 +190,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isPlayingRef.current) return;
 
     const now = performance.now();
-    const shouldUpdateUI = now - lastAudioUpdateRef.current > 66; // ~15fps для UI
+    const shouldUpdateUI = now - lastAudioUpdateRef.current > 66;
 
     if (isCorsBlockedRef.current) {
       const dataArray = new Uint8Array(128);
@@ -282,6 +231,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     requestRef.current = requestAnimationFrame(updateAudioData);
   };
 
+  const startPlayback = () => {
+    if (audioCtxRef.current?.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    cancelAnimationFrame(requestRef.current);
+
+    audioRef.current!.play().then(() => {
+      setIsPlaying(true);
+      requestRef.current = requestAnimationFrame(updateAudioData);
+    }).catch(() => {
+      isCorsBlockedRef.current = true;
+      setIsPlaying(true);
+      requestRef.current = requestAnimationFrame(updateAudioData);
+    });
+  };
+
   const playNext = () => {
     const currentIndex = PLAYLIST.findIndex(s => s.id === currentSongRef.current.id);
     const nextIndex = (currentIndex + 1) % PLAYLIST.length;
@@ -289,53 +254,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const playSong = async (song: Song) => {
+    cancelAnimationFrame(requestRef.current);
+
     const songWithLyrics = await loadLyrics(song);
     setCurrentSong(songWithLyrics);
     setCurrentTime(0);
 
-    if (!audioRef.current) {
-      initAudio();
-      audioRef.current!.src = song.url;
-      audioRef.current!.play().then(() => {
-        setIsPlaying(true);
-        requestRef.current = requestAnimationFrame(updateAudioData);
-      }).catch(() => {
-        isCorsBlockedRef.current = true;
-        setIsPlaying(true);
-        requestRef.current = requestAnimationFrame(updateAudioData);
-      });
-    } else {
-      audioRef.current.src = song.url;
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-        requestRef.current = requestAnimationFrame(updateAudioData);
-      }).catch(() => {
-        isCorsBlockedRef.current = true;
-        setIsPlaying(true);
-        requestRef.current = requestAnimationFrame(updateAudioData);
-      });
-    }
+    ensureAudio(song.url);
+
+    audioRef.current!.src = song.url;
+    startPlayback();
   };
 
   const togglePlay = () => {
-    if (!audioCtxRef.current) initAudio();
-    if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
+    ensureAudio(currentSongRef.current.url);
 
-    if (isPlaying) {
+    if (isPlayingRef.current) {
       audioRef.current?.pause();
       cancelAnimationFrame(requestRef.current);
       setIsPlaying(false);
     } else {
-      if (audioRef.current?.src) {
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-          requestRef.current = requestAnimationFrame(updateAudioData);
-        }).catch(() => {
-          isCorsBlockedRef.current = true;
-          setIsPlaying(true);
-          requestRef.current = requestAnimationFrame(updateAudioData);
-        });
+      if (!audioRef.current!.src || audioRef.current!.src === window.location.href) {
+        audioRef.current!.src = currentSongRef.current.url;
       }
+      startPlayback();
     }
   };
 
