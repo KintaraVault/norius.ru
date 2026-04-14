@@ -97,7 +97,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
+  const prevOverdriveRef = useRef(false);
   useEffect(() => {
+    if (prevOverdriveRef.current === isOverdrive) return;
+    prevOverdriveRef.current = isOverdrive;
+
     if (feedbackNodeRef.current && delayOutGainRef.current && audioRef.current && audioCtxRef.current) {
       if (isOverdrive) {
         feedbackNodeRef.current.gain.setTargetAtTime(0.6, audioCtxRef.current.currentTime, 0.1);

@@ -17,6 +17,9 @@ const Portfolio = () => {
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0, time: Date.now() });
   const [clickCount, setClickCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const overdriveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fastMovesRef = useRef(0);
+  const fastMovesResetRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -42,7 +45,6 @@ const Portfolio = () => {
   }, [setIsIdle]);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
     const handleMouseMove = (e: MouseEvent) => {
       const now = Date.now();
       const dt = now - lastMouse.time;
@@ -51,11 +53,29 @@ const Portfolio = () => {
         const dy = e.clientY - lastMouse.y;
         const speed = Math.sqrt(dx * dx + dy * dy) / dt;
 
-        if (speed > 8) {
-          setOverdrive(true);
-          clearTimeout(timeout);
-          timeout = setTimeout(() => setOverdrive(false), 2000);
+        if (speed > 15) {
+          fastMovesRef.current += 1;
+
+          // Reset fast-move counter after 600ms of no fast movement
+          if (fastMovesResetRef.current) clearTimeout(fastMovesResetRef.current);
+          fastMovesResetRef.current = setTimeout(() => {
+            fastMovesRef.current = 0;
+          }, 600);
+
+          // Need 4 consecutive fast moves to enter trip mode
+          if (fastMovesRef.current >= 4) {
+            if (!isOverdrive) {
+              setOverdrive(true);
+            }
+            // Always refresh the 5s timer — no re-trigger of setOverdrive if already on
+            if (overdriveTimeoutRef.current) clearTimeout(overdriveTimeoutRef.current);
+            overdriveTimeoutRef.current = setTimeout(() => {
+              setOverdrive(false);
+              fastMovesRef.current = 0;
+            }, 5000);
+          }
         }
+
         setLastMouse({ x: e.clientX, y: e.clientY, time: now });
       }
     };
@@ -71,15 +91,16 @@ const Portfolio = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('click', handleClick);
     };
-  }, [lastMouse, setOverdrive]);
+  }, [lastMouse, setOverdrive, isOverdrive]);
 
   useEffect(() => {
     if (clickCount > 5) {
-      setOverdrive(true);
-      setTimeout(() => setOverdrive(false), 3000);
+      if (!isOverdrive) setOverdrive(true);
+      if (overdriveTimeoutRef.current) clearTimeout(overdriveTimeoutRef.current);
+      overdriveTimeoutRef.current = setTimeout(() => setOverdrive(false), 5000);
       setClickCount(0);
     }
-  }, [clickCount, setOverdrive]);
+  }, [clickCount, setOverdrive, isOverdrive]);
 
   const shakeX = shake > 0 ? Math.min(shake / 50, 30) : 0;
   const shakeY = shake > 0 ? Math.min(shake / 80, 20) : 0;
